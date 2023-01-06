@@ -3,36 +3,53 @@
 import 'package:flutter/cupertino.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
+class Card {
+  String? suit;
+  String? value;
+
+  Card({this.suit, this.value});
+
+  Card.fromJson(Map json) {
+    suit = json['suit'];
+    value = json['value'];
+  }
+
+  Map<String, dynamic> toJson() => {
+        "suit": suit,
+        "value": value,
+      };
+}
+
 class Player {
   String? id;
-  final String name;
-  List<String> messages;
-  List<String> hand;
-  double points;
+  String? name;
+  List<String>? messages;
+  List<String>? hand;
+  double? points;
 
   Player({
     this.id,
-    required this.name,
+    this.name,
     this.messages = const [],
     this.hand = const [],
     this.points = 0,
   });
 
-  static Player fromJson(Map json) => Player(
-        id: json['id'],
-        name: json['name'],
-        messages: json['messages'],
-        hand: json['hand'],
-        points: json['points'],
-      );
+  Player.fromJson(Map json) {
+    id = json['id'];
+    name = json['name'];
+    messages = List<String>.from(json['messages']);
+    hand = List<String>.from(json['hand']);
+    points = json['points'];
+  }
 }
 
 class GameState {
-  bool started;
-  List<String> deck;
-  List<Player> players;
-  String turn;
-  String winner;
+  bool? started;
+  List<String>? deck;
+  List<Player>? players;
+  String? turn;
+  String? winner;
 
   GameState({
     this.started = false,
@@ -42,18 +59,34 @@ class GameState {
     this.winner = '',
   });
 
-  static GameState fromJson(Map json) => GameState(
-        started: json['started'],
-        deck: json['deck'],
-        players: json['players'],
-        turn: json['turn'],
-        winner: json['winner'],
-      );
+  GameState.fromJson(Map json) {
+    started = json['started'];
+    deck = List<String>.from(json['deck']);
+    if (json['players'] != null) {
+      List<Player> list = [];
+      json['players'].forEach((e) => list.add(Player.fromJson(e)));
+      players = list;
+    }
+    turn = json['turn'];
+    winner = json['winner'];
+  }
+}
+
+class Room {
+  String? name;
+  List<String>? users;
+
+  Room({this.name, this.users});
+
+  Room.fromJson(Map json) {
+    name = json['name'];
+    users = List<String>.from(json['users']);
+  }
 }
 
 class GameSocketProvider extends ChangeNotifier {
   late io.Socket socket;
-  String roomId = "";
+  String? roomId;
   String roomName = "";
   String playerName = "";
   GameState gameState = GameState();
@@ -65,7 +98,7 @@ class GameSocketProvider extends ChangeNotifier {
     });
     // Get room Id
     socket.on('room_update', (data) {
-      print("room_update $data");
+      print("room_update");
       roomId = data['id'];
       roomName = data['name'];
       notifyListeners();
@@ -73,28 +106,36 @@ class GameSocketProvider extends ChangeNotifier {
 
     // Listen for game state updates
     socket.on('game_state', (data) {
-      print("room_update $data");
-      gameState = data;
+      print("game_state");
+      gameState = GameState.fromJson(data);
       notifyListeners();
     });
   }
 
-  disconnect() {
-    print("disconnect $roomId");
-    socket.emit('disconnect');
-    socket.disconnect();
-  }
+  bool get isJoined =>
+      gameState.players?.any((e) => e.name == playerName) ?? false;
 
-  bool isJoined() => gameState.players.any((e) => e.name == playerName);
-
-  joinGame(String playerName) {
-    print("joinGame $playerName $roomId");
+  joinGame({String? roomId, required String playerName}) {
+    print("join $playerName");
+    print("RoomID: $roomId");
     this.playerName = playerName;
-    socket.emit('join_game', playerName);
+    this.roomId = roomId;
+    socket.emit('join_room', [roomId, playerName]);
+    print("joined");
     notifyListeners();
   }
 
-  startGame() {
+  disconnect() {
+    print("disconnect");
+    socket.emit('disconnect');
+    socket.disconnect();
+    gameState = GameState();
+    roomId = null;
+    roomName = "";
+    notifyListeners();
+  }
+
+  /*  startGame() {
     print("startGame $roomId");
     socket.emit('start_game');
   }
@@ -107,5 +148,6 @@ class GameSocketProvider extends ChangeNotifier {
   sendMessage(String message) {
     print("sendMessage $message");
     socket.emit('message', message);
-  }
+  } */
+
 }
