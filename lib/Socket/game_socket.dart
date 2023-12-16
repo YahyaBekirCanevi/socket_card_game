@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print
-
 import 'package:flutter/cupertino.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
@@ -15,8 +13,8 @@ class Card {
   }
 
   Map<String, dynamic> toJson() => {
-        "suit": suit,
-        "value": value,
+        'suit': suit,
+        'value': value,
       };
 }
 
@@ -87,8 +85,8 @@ class Room {
 class GameSocketProvider extends ChangeNotifier {
   late io.Socket socket;
   String? roomId;
-  String roomName = "";
-  String playerName = "";
+  String roomName = '';
+  String playerName = '';
   GameState gameState = GameState();
 
   GameSocketProvider() {
@@ -98,7 +96,7 @@ class GameSocketProvider extends ChangeNotifier {
     });
     // Get room Id
     socket.on('room_update', (data) {
-      print("room_update");
+      print('room_update');
       roomId = data['id'];
       roomName = data['name'];
       notifyListeners();
@@ -106,7 +104,7 @@ class GameSocketProvider extends ChangeNotifier {
 
     // Listen for game state updates
     socket.on('game_state', (data) {
-      print("game_state");
+      print('game_state');
       gameState = GameState.fromJson(data);
       notifyListeners();
     });
@@ -116,22 +114,22 @@ class GameSocketProvider extends ChangeNotifier {
       gameState.players?.any((e) => e.name == playerName) ?? false;
 
   joinGame({String? roomId, required String playerName}) {
-    print("join $playerName");
-    print("RoomID: $roomId");
+    print('join $playerName');
+    print('RoomID: $roomId');
     this.playerName = playerName;
     this.roomId = roomId;
     socket.emit('join_room', [roomId, playerName]);
-    print("joined");
+    print('joined');
     notifyListeners();
   }
 
   disconnect() {
-    print("disconnect");
+    print('disconnect');
     socket.emit('disconnect');
     socket.disconnect();
     gameState = GameState();
     roomId = null;
-    roomName = "";
+    roomName = '';
     notifyListeners();
   }
 
@@ -149,5 +147,4 @@ class GameSocketProvider extends ChangeNotifier {
     print("sendMessage $message");
     socket.emit('message', message);
   } */
-
 }
